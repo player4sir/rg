@@ -15,25 +15,25 @@ app.post('/rg', upload.single('image'), (req, res) => {
     const imagePath = `file://${req.file.path}`;
     removeBackground(imagePath)
         .then((blob) => {
-            res.writeHead(200, {
-                'Content-Type': 'image/png',
-                'Content-Disposition': 'attachment; filename=' + req.file.originalname
+            blob.arrayBuffer().then((arrayBuffer) => {
+                const buffer = Buffer.from(arrayBuffer);
+                res.writeHead(200, {
+                    'Content-Type': 'image/png',
+                    'Content-Disposition': 'attachment; filename=' + req.file.originalname,
+                    'Content-Length': buffer.length
+                });
+                res.end(buffer);
+                fs.unlinkSync(req.file.path);
+                // console.log(`Temporary file ${req.file.path} deleted.`);
             });
-            blob.stream().pipe(res);
         })
         .catch((error) => {
             console.error('Error removing background:', error);
             res.status(500).send('Error processing image');
-        })
-        .finally(() => {
-            fs.unlink(req.file.path, (err) => {
-                if (err) {
-                    console.error(`Temporary file ${req.file.path} deletion failed.`);
-                }
-            });
+            fs.unlinkSync(req.file.path);
+            // console.log(`Temporary file ${req.file.path} deleted.`);
         });
 });
-
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
